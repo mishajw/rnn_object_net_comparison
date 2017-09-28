@@ -1,0 +1,6 @@
+[submodule "object_net.git"]
+	path = object_net.git
+	url = git@github.com:mishajw/object_net.git
+[submodule "tf_utils"]
+	path = tf_utils
+	url = git@github.com:mishajw/tf_utils.git
