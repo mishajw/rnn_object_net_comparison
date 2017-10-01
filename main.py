@@ -8,37 +8,40 @@ import tf_utils
 
 
 def main():
+    # Set up arguments
     parser = argparse.ArgumentParser()
     tf_utils.generic_runner.add_arguments(parser)
     tf_utils.data_holder.add_arguments(parser)
     args = parser.parse_args()
 
+    layer_size = 128
+    num_layers = 2
+
+    # Set up data
     data = [[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]] * 100
     data = map(sequence_type.get_state_output_pairs, data)
     data = padder.PaddedData.from_unpadded(data)
     data_placeholder = padder.PlaceholderPaddedData()
     data_holder = tf_utils.data_holder.DataHolder(args, lambda i: data[i], len(data))
 
+    # Set up object_net model
     def get_model(training: bool) -> object_net_writer.ObjectNetWriter:
         return object_net_writer.ObjectNetWriter(
             truth_padded_data=data_placeholder,
             initial_hidden_vector_input=tf.zeros(args.batch_size),
-            hidden_vector_size=128,
             object_type=sequence_type,
             training=training,
             hidden_vector_network=object_net_components.LstmHiddenVectorNetwork(
-                128, 2, object_net_components.AdditionHiddenVectorCombiner()))
-
-    model = get_model(True)
-    test_model = get_model(False)
-
-    optimizer = tf.train.AdamOptimizer().minimize(model.cost)
-    tf.summary.scalar("object_net_cost", model.cost)
+                layer_size, num_layers, object_net_components.AdditionHiddenVectorCombiner()))
+    object_net_model = get_model(True)
+    object_net_model_test = get_model(False)
+    optimizer = tf.train.AdamOptimizer().minimize(object_net_model.cost)
+    tf.summary.scalar("object_net_cost", object_net_model.cost)
 
     # Run training
     def train_step(session, step, training_input, _, summary_writer, all_summaries):
         result, cost, summaries = session.run(
-            [optimizer, model.cost, all_summaries],
+            [optimizer, object_net_model.cost, all_summaries],
             data_placeholder.get_feed_dict(training_input))
 
         summary_writer.add_summary(summaries, step)
@@ -47,7 +50,7 @@ def main():
 
     def test_step(session, step, testing_input, _, summary_writer, all_summaries):
         cost_result, all_summaries = session.run(
-            [model.cost, all_summaries],
+            [object_net_model.cost, all_summaries],
             data_placeholder.get_feed_dict(testing_input))
 
         summary_writer.add_summary(all_summaries, step)
@@ -65,10 +68,10 @@ def main():
             generated_outputs_counts_padded, \
             generated_step_counts = session.run(
                 [
-                    test_model.generated_states_padded,
-                    test_model.generated_outputs_padded,
-                    test_model.generated_outputs_counts_padded,
-                    test_model.generated_step_counts],
+                    object_net_model_test.generated_states_padded,
+                    object_net_model_test.generated_outputs_padded,
+                    object_net_model_test.generated_outputs_counts_padded,
+                    object_net_model_test.generated_step_counts],
                 data_placeholder.get_feed_dict(model_input))
 
         copied_testing_input = padder.PaddedData(
