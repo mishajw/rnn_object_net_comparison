@@ -65,7 +65,8 @@ def __get_rnn_model(layer_size: int, num_layers: int, model_input: tf.Tensor) ->
         current_states = tf.concat([tf.expand_dims(state, axis=1) for state in current_states_list], axis=1)
 
         with tf.variable_scope("fully_connected_output"):
-            final_output = tf.contrib.layers.fully_connected(current_input, num_outputs=1, activation_fn=tf.nn.sigmoid)
+            final_output = tf.squeeze(
+                tf.contrib.layers.fully_connected(current_input, num_outputs=1, activation_fn=tf.nn.sigmoid), axis=1)
 
         outputs = outputs.write(step, final_output)
 
@@ -88,4 +89,5 @@ def __get_rnn_model(layer_size: int, num_layers: int, model_input: tf.Tensor) ->
             tf.TensorShape([None, num_layers, layer_size * 2]),
             tf.TensorShape([])])
 
-    return outputs_result_ta.stack()
+    # Transpose the outputs to make batch the first dimension
+    return tf.transpose(outputs_result_ta.stack(), [1, 0])
