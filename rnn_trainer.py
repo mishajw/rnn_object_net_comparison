@@ -19,16 +19,17 @@ def train(args, data: np.array, layer_size: int, num_layers: int):
 
         summary_writer.add_summary(summaries, step)
 
-        # print("Training cost: %f" % cost_result)
-
     def test_step(session, step, testing_input, _, summary_writer, __):
-        _, cost_result, summaries = session.run(
-            [optimizer, cost, summary],
+        predictions_result, cost_result, summaries = session.run(
+            [predictions, cost, summary],
             {data_placeholder: testing_input})
 
         summary_writer.add_summary(summaries, step)
 
         print("Testing cost: %f" % cost_result)
+
+        print("Predictions:")
+        map(print, predictions_result[:10])
 
     tf_utils.generic_runner.run_with_test_train_steps(
         args,
