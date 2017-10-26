@@ -5,21 +5,23 @@ import tf_utils
 
 def train(args, data: np.array, layer_size: int, num_layers: int):
     data_holder = tf_utils.data_holder.DataHolder(args, lambda i: (data[i], None), len(data))
-    data_placeholder = tf.placeholder(dtype=tf.float32, shape=[None, 9])
+    data_placeholder = tf.placeholder(dtype=tf.float32, shape=[None, 50])
     predictions = __get_rnn_model(layer_size, num_layers, data_placeholder)
     cost = tf.sqrt(tf.reduce_sum(tf.squared_difference(predictions, data_placeholder)))
     optimizer = tf.train.AdamOptimizer().minimize(cost)
     summary = tf.summary.scalar("cost", cost)
 
     # Run training
-    def train_step(session, step, training_input, _, summary_writer, __):
+    def train_step(session, step, training_input, _, summary_writer):
+        training_input, _ = training_input
         _, cost_result, summaries = session.run(
             [optimizer, cost, summary],
             {data_placeholder: training_input})
 
         summary_writer.add_summary(summaries, step)
 
-    def test_step(session, step, testing_input, _, summary_writer, __):
+    def test_step(session, step, testing_input, _, summary_writer):
+        testing_input, _ = testing_input
         predictions_result, cost_result, summaries = session.run(
             [predictions, cost, summary],
             {data_placeholder: testing_input})
@@ -28,16 +30,11 @@ def train(args, data: np.array, layer_size: int, num_layers: int):
 
         print("Testing cost: %f" % cost_result)
 
-        print("Predictions:")
-        map(print, predictions_result[:10])
-
-    tf_utils.generic_runner.run_with_test_train_steps(
-        args,
-        "rnn_object_net_comparison",
-        get_batch_fn=data_holder.get_batch,
-        testing_data=data_holder.get_test_data(),
-        test_step_fn=test_step,
-        train_step_fn=train_step)
+    runner = tf_utils.generic_runner.GenericRunner.from_args(args, "rnn_object_net_comparison")
+    runner.set_data_holder(data_holder)
+    runner.set_train_step(train_step)
+    runner.set_test_step(test_step)
+    runner.run()
 
 
 def __get_rnn_model(layer_size: int, num_layers: int, model_input: tf.Tensor) -> tf.Tensor:

@@ -10,7 +10,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--object_net", type=bool, default=False)
     parser.add_argument("--rnn", type=bool, default=False)
-    tf_utils.generic_runner.add_arguments(parser)
+    tf_utils.generic_runner.GenericRunner.add_arguments(parser)
     tf_utils.data_holder.add_arguments(parser)
     args = parser.parse_args()
 

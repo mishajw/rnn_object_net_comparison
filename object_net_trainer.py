@@ -30,14 +30,14 @@ def train(args, data: np.array, layer_size: int, num_layers: int):
     summary = tf.summary.scalar("cost", model.cost)
 
     # Run training
-    def train_step(session, step, training_input, _, summary_writer, __):
+    def train_step(session, step, training_input, _, summary_writer):
         _, _, summaries = session.run(
             [optimizer, model.cost, summary],
             object_net_data_placeholder.get_feed_dict(training_input))
 
         summary_writer.add_summary(summaries, step)
 
-    def test_step(session, step, testing_input, _, summary_writer, __):
+    def test_step(session, step, testing_input, _, summary_writer):
         cost_result, all_summaries = session.run(
             [model.cost, summary],
             object_net_data_placeholder.get_feed_dict(testing_input))
@@ -77,13 +77,11 @@ def train(args, data: np.array, layer_size: int, num_layers: int):
 
         [print(s) for s in generated_sequences]
 
-    tf_utils.generic_runner.run_with_test_train_steps(
-        args,
-        "rnn_object_net_comparison",
-        get_batch_fn=lambda size: (data_holder.get_batch(size), None),
-        testing_data=(data_holder.get_test_data(), None),
-        test_step_fn=test_step,
-        train_step_fn=train_step)
+    runner = tf_utils.generic_runner.GenericRunner.from_args(args, "rnn_object_net_comparison")
+    runner.set_data_holder(data_holder)
+    runner.set_train_step(train_step)
+    runner.set_test_step(test_step)
+    runner.run()
 
 
 def __get_rnn_model(layer_size: int, num_layers: int, model_input: tf.Tensor) -> tf.Tensor:
